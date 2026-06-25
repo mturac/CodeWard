@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/codeward-hero.svg" alt="CodeWard repo guardrail pipeline" width="100%">
+  <img src="docs/assets/codeward-hero.png" alt="CodeWard repo guardrail pipeline" width="100%">
 </p>
 
 # CodeWard
@@ -51,6 +51,12 @@ pnpm build
 pnpm check
 ```
 
+打开 Vite 产品界面：
+
+```bash
+pnpm dev:web
+```
+
 在示例仓库上试用：
 
 ```bash
@@ -59,13 +65,13 @@ pnpm codeward scan --root examples/next-prisma-saas
 pnpm codeward check --root examples/next-prisma-saas --no-fail
 ```
 
-发布后，用户可以在任意仓库中运行：
+从当前 checkout 对另一个本地仓库运行 CodeWard：
 
 ```bash
-pnpm dlx codeward init
-pnpm dlx codeward scan
-pnpm dlx codeward agents --target agents,copilot --write
-pnpm dlx codeward check
+pnpm codeward init --root /path/to/repo
+pnpm codeward scan --root /path/to/repo
+pnpm codeward agents --root /path/to/repo --target agents,copilot --write
+pnpm codeward check --root /path/to/repo
 ```
 
 ## CLI

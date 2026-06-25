@@ -6,10 +6,13 @@
   "packageManager": "pnpm@11.8.0",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "build:web": "pnpm --filter @codeward/web build",
     "check": "node scripts/check.mjs",
     "codeward": "node apps/cli/dist/index.js",
+    "dev:web": "pnpm --filter @codeward/web dev",
     "format": "node scripts/check-format.mjs",
     "lint": "node scripts/check-format.mjs",
+    "preview:web": "pnpm --filter @codeward/web preview",
     "test": "node scripts/test.mjs",
     "typecheck": "node scripts/build.mjs"
   },

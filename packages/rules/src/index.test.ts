@@ -41,7 +41,7 @@ describe("runRules", () => {
       await mkdir(path.join(root, ".github"), { recursive: true });
       await writeFile(path.join(root, "AGENTS.md"), "# Agent rules\n");
       await writeFile(path.join(root, ".github", "copilot-instructions.md"), "# Copilot rules\n");
-      await writeFile(path.join(root, "src", "server", "billing", "updatePlan.ts"), "export const x: any = 1;\n");
+      await writeFile(path.join(root, "src", "server", "billing", "updatePlan.ts"), "export const x: " + "any = 1;\n");
       const repoMap = baseRepoMap(root);
 
       const result = await runRules({
@@ -55,6 +55,62 @@ describe("runRules", () => {
       assert.ok(ruleIds.includes("riskyFileChange"));
       assert.ok(ruleIds.includes("forbiddenAny"));
       assert.ok(ruleIds.includes("missingNearbyTest"));
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("does not let an unrelated changed test suppress missing nearby test", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "codeward-rules-"));
+    try {
+      await mkdir(path.join(root, "src", "billing"), { recursive: true });
+      await mkdir(path.join(root, "src", "auth"), { recursive: true });
+      await mkdir(path.join(root, ".github"), { recursive: true });
+      await writeFile(path.join(root, "AGENTS.md"), "# Agent rules\n");
+      await writeFile(path.join(root, ".github", "copilot-instructions.md"), "# Copilot rules\n");
+      await writeFile(path.join(root, "src", "billing", "updatePlan.ts"), "export const updatePlan = () => true;\n");
+      await writeFile(path.join(root, "src", "auth", "session.test.ts"), "import 'node:test';\n");
+
+      const result = await runRules({
+        root,
+        config: DEFAULT_CONFIG,
+        repoMap: baseRepoMap(root),
+        changedFiles: ["src/billing/updatePlan.ts", "src/auth/session.test.ts"]
+      });
+
+      assert.ok(
+        result.findings.some(
+          (finding) => finding.ruleId === "missingNearbyTest" && finding.path === "src/billing/updatePlan.ts"
+        )
+      );
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("accepts a nearby changed test for logic changes", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "codeward-rules-"));
+    try {
+      await mkdir(path.join(root, "src", "billing"), { recursive: true });
+      await mkdir(path.join(root, ".github"), { recursive: true });
+      await writeFile(path.join(root, "AGENTS.md"), "# Agent rules\n");
+      await writeFile(path.join(root, ".github", "copilot-instructions.md"), "# Copilot rules\n");
+      await writeFile(path.join(root, "src", "billing", "updatePlan.ts"), "export const updatePlan = () => true;\n");
+      await writeFile(path.join(root, "src", "billing", "updatePlan.test.ts"), "import 'node:test';\n");
+
+      const result = await runRules({
+        root,
+        config: DEFAULT_CONFIG,
+        repoMap: baseRepoMap(root),
+        changedFiles: ["src/billing/updatePlan.ts", "src/billing/updatePlan.test.ts"]
+      });
+
+      assert.equal(
+        result.findings.some(
+          (finding) => finding.ruleId === "missingNearbyTest" && finding.path === "src/billing/updatePlan.ts"
+        ),
+        false
+      );
     } finally {
       await rm(root, { force: true, recursive: true });
     }

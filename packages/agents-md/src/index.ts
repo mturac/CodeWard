@@ -1,6 +1,7 @@
 import {
   getInstructionOutputPath,
   getInstructionTargets,
+  formatPackageScriptCommand,
   type CodeWardConfig,
   type InstructionTarget,
   type RepoMap
@@ -23,7 +24,7 @@ export function generateAgentsMd(repoMap: RepoMap, config: CodeWardConfig): stri
     `- Package manager: ${repoMap.packageManager}`,
     `- Frameworks: ${formatList(repoMap.frameworks)}`,
     `- Languages: ${formatList(repoMap.languages)}`,
-    `- Validation commands: ${formatCommands(repoMap.scripts, config.validation.commands)}`,
+    `- Validation commands: ${formatCommands(repoMap.packageManager, repoMap.scripts, config.validation.commands)}`,
     "",
     "## Hard Rules",
     "",
@@ -45,7 +46,7 @@ export function generateAgentsMd(repoMap: RepoMap, config: CodeWardConfig): stri
     "",
     "## Expected Verification",
     "",
-    ...formatValidation(config.validation.commands, repoMap.scripts),
+    ...formatValidation(config.validation.commands, repoMap.scripts, repoMap.packageManager),
     ""
   ];
 
@@ -80,7 +81,7 @@ export function generateCopilotInstructionsMd(repoMap: RepoMap, config: CodeWard
     `- Package manager: ${repoMap.packageManager}`,
     `- Frameworks: ${formatList(repoMap.frameworks)}`,
     `- Languages: ${formatList(repoMap.languages)}`,
-    `- Validation commands: ${formatCommands(repoMap.scripts, config.validation.commands)}`,
+    `- Validation commands: ${formatCommands(repoMap.packageManager, repoMap.scripts, config.validation.commands)}`,
     "",
     ...frameworkRules(repoMap),
     "## Risky Areas",
@@ -89,7 +90,7 @@ export function generateCopilotInstructionsMd(repoMap: RepoMap, config: CodeWard
     "",
     "## Expected Verification",
     "",
-    ...formatValidation(config.validation.commands, repoMap.scripts),
+    ...formatValidation(config.validation.commands, repoMap.scripts, repoMap.packageManager),
     ""
   ];
 
@@ -159,8 +160,12 @@ function formatList(values: string[]): string {
   return values.length ? values.join(", ") : "not detected";
 }
 
-function formatCommands(scripts: Record<string, string>, configured: Record<string, string>): string {
-  const commands = Object.values(configured).length ? Object.values(configured) : inferCommands(scripts);
+function formatCommands(
+  packageManager: RepoMap["packageManager"],
+  scripts: Record<string, string>,
+  configured: Record<string, string>
+): string {
+  const commands = Object.values(configured).length ? Object.values(configured) : inferCommands(scripts, packageManager);
   return commands.length ? commands.join("; ") : "not detected";
 }
 
@@ -187,10 +192,14 @@ function formatEnvSection(repoMap: RepoMap): string[] {
   return lines;
 }
 
-function formatValidation(configured: Record<string, string>, scripts: Record<string, string>): string[] {
+function formatValidation(
+  configured: Record<string, string>,
+  scripts: Record<string, string>,
+  packageManager: RepoMap["packageManager"]
+): string[] {
   const commands = Object.entries(configured).length
     ? Object.entries(configured)
-    : inferCommandEntries(scripts);
+    : inferCommandEntries(scripts, packageManager);
 
   if (!commands.length) {
     return ["- No validation commands were detected. Add lint, typecheck, test, and build scripts when available."];
@@ -199,15 +208,18 @@ function formatValidation(configured: Record<string, string>, scripts: Record<st
   return commands.map(([name, command]) => `- ${name}: \`${command}\``);
 }
 
-function inferCommands(scripts: Record<string, string>): string[] {
-  return inferCommandEntries(scripts).map(([, command]) => command);
+function inferCommands(scripts: Record<string, string>, packageManager: RepoMap["packageManager"]): string[] {
+  return inferCommandEntries(scripts, packageManager).map(([, command]) => command);
 }
 
-function inferCommandEntries(scripts: Record<string, string>): Array<[string, string]> {
+function inferCommandEntries(
+  scripts: Record<string, string>,
+  packageManager: RepoMap["packageManager"]
+): Array<[string, string]> {
   const commands: Array<[string, string]> = [];
   for (const name of ["lint", "typecheck", "test", "build"]) {
     if (scripts[name]) {
-      commands.push([name, `pnpm ${name}`]);
+      commands.push([name, formatPackageScriptCommand(packageManager, name)]);
     }
   }
   return commands;

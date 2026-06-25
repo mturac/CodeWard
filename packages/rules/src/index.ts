@@ -106,9 +106,6 @@ const RULES: Rule[] = [
     async run(context, severity) {
       const findings: Finding[] = [];
       for (const file of context.changedFiles.filter(isLogicSourceFile)) {
-        if (context.changedFiles.some((candidate) => isTestFile(candidate))) {
-          continue;
-        }
         if (await hasNearbyTest(context.root, file)) {
           continue;
         }

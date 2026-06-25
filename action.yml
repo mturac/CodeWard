@@ -10,11 +10,35 @@ inputs:
     description: Minimum severity that fails the action. Use error, warn, or off.
     required: false
     default: "error"
+  base:
+    description: Git base ref or SHA for changed-file detection.
+    required: false
+    default: ""
 runs:
   using: composite
   steps:
     - name: Run CodeWard
       shell: bash
+      env:
+        CODEWARD_ROOT: ${{ inputs.root }}
+        CODEWARD_FAIL_ON: ${{ inputs.fail-on }}
+        CODEWARD_BASE: ${{ inputs.base }}
       run: |
         corepack enable
-        pnpm dlx codeward ci --root "${{ inputs.root }}" --fail-on "${{ inputs.fail-on }}"
+        case "$CODEWARD_FAIL_ON" in
+          error|warn|off) ;;
+          *)
+            echo "::error::fail-on must be one of: error, warn, off"
+            exit 1
+            ;;
+        esac
+
+        pnpm install --dir "$GITHUB_ACTION_PATH" --frozen-lockfile
+        pnpm --dir "$GITHUB_ACTION_PATH" build
+
+        args=(ci --root "$CODEWARD_ROOT" --fail-on "$CODEWARD_FAIL_ON")
+        if [ -n "$CODEWARD_BASE" ]; then
+          args+=(--base "$CODEWARD_BASE")
+        fi
+
+        node "$GITHUB_ACTION_PATH/apps/cli/dist/index.js" "${args[@]}"

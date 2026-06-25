@@ -5,7 +5,9 @@ coverage/
 .turbo/
 .next/
 .vite/
+.playwright-cli/
 .cache/
+.izonconsule/
 .codeward/repo-map.json
 *.tsbuildinfo
 .env

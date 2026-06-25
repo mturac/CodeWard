@@ -55,6 +55,24 @@ describe("generateAgentsMd", () => {
     assert.match(files[1]?.contents ?? "", /# fixture-app Copilot Instructions/);
     assert.match(files[1]?.contents ?? "", /Prioritize production risks/);
   });
+
+  it("formats inferred npm validation scripts with npm run", () => {
+    const output = generateAgentsMd(
+      {
+        ...fixtureRepoMap(),
+        packageManager: "npm",
+        scripts: {
+          lint: "eslint .",
+          test: "node --test"
+        }
+      },
+      DEFAULT_CONFIG
+    );
+
+    assert.match(output, /Validation commands: npm run lint; npm run test/);
+    assert.match(output, /- lint: `npm run lint`/);
+    assert.doesNotMatch(output, /npm lint/);
+  });
 });
 
 function fixtureRepoMap(): RepoMap {

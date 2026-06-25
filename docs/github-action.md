@@ -16,10 +16,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: codeward/codeward-action@v0
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: mturac/CodeWard@main
+        with:
+          base: ${{ github.event.pull_request.base.sha }}
+          fail-on: error
 ```
 
-For local development in this repository, the generated workflow uses `pnpm dlx codeward ci`.
+The generated workflow calls this repository action directly and passes the pull request base SHA so changed-file checks work in CI.
 
 ## Failure Mode
 

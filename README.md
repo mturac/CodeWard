@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/codeward-hero.svg" alt="CodeWard repo guardrail pipeline" width="100%">
+  <img src="docs/assets/codeward-hero.png" alt="CodeWard repo guardrail pipeline" width="100%">
 </p>
 
 # CodeWard
@@ -53,6 +53,12 @@ pnpm build
 pnpm check
 ```
 
+Open the Vite product interface:
+
+```bash
+pnpm dev:web
+```
+
 Try CodeWard against the included fixture:
 
 ```bash
@@ -61,13 +67,13 @@ pnpm codeward scan --root examples/next-prisma-saas
 pnpm codeward check --root examples/next-prisma-saas --no-fail
 ```
 
-When published, users can run CodeWard from any repository:
+Run CodeWard against another local repository from this checkout:
 
 ```bash
-pnpm dlx codeward init
-pnpm dlx codeward scan
-pnpm dlx codeward agents --target agents,copilot --write
-pnpm dlx codeward check
+pnpm codeward init --root /path/to/repo
+pnpm codeward scan --root /path/to/repo
+pnpm codeward agents --root /path/to/repo --target agents,copilot --write
+pnpm codeward check --root /path/to/repo
 ```
 
 ## CLI
@@ -160,13 +166,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: codeward/codeward-action@v0
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: mturac/CodeWard@main
+        with:
+          base: ${{ github.event.pull_request.base.sha }}
+          fail-on: error
 ```
 
 ## Project Structure
 
 ```txt
 apps/cli              CLI entrypoint and commands
+apps/web              Vite product interface for the guardrail workflow
 packages/core         shared types, config, filesystem, and git helpers
 packages/analyzer     repository scanning and context extraction
 packages/agents-md    instruction file generation

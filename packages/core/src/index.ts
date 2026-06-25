@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { access, mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { access, lstat, mkdir, readdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import YAML from "yaml";
@@ -114,6 +114,8 @@ const IGNORED_DIRS = new Set([
   ".cache",
   ".git",
   ".next",
+  ".izonconsule",
+  ".playwright-cli",
   ".turbo",
   ".vercel",
   "coverage",
@@ -177,6 +179,7 @@ export function serializeConfig(config: CodeWardConfig): string {
 }
 
 export function mergeConfig(config: Partial<CodeWardConfig>): CodeWardConfig {
+  validateConfigShape(config);
   return {
     project: {
       ...DEFAULT_CONFIG.project,
@@ -200,6 +203,7 @@ export function mergeConfig(config: Partial<CodeWardConfig>): CodeWardConfig {
     agents: {
       ...DEFAULT_CONFIG.agents,
       ...config.agents,
+      output: config.agents?.output ? assertRepoRelativePath(config.agents.output, "agents.output") : DEFAULT_CONFIG.agents.output,
       targets: normalizeInstructionTargets(config.agents?.targets)
     }
   };
@@ -252,7 +256,7 @@ export async function listRepoFiles(root: string): Promise<string[]> {
 }
 
 export async function readSmallTextFile(root: string, relativePath: string): Promise<string | undefined> {
-  const absolutePath = path.join(root, relativePath);
+  const absolutePath = resolveRepoPath(root, relativePath);
   const fileStat = await stat(absolutePath).catch(() => undefined);
   if (!fileStat || fileStat.size > 300_000) {
     return undefined;
@@ -262,9 +266,10 @@ export async function readSmallTextFile(root: string, relativePath: string): Pro
 
 export async function getGitChangedFiles(root: string, base?: string): Promise<string[]> {
   const changed = new Set<string>();
+  const normalizedBase = base ? assertSafeGitBase(base) : undefined;
 
-  const runs = base
-    ? [["diff", "--name-only", `${base}...HEAD`]]
+  const runs = normalizedBase
+    ? [["diff", "--name-only", `${normalizedBase}...HEAD`]]
     : [
         ["diff", "--name-only"],
         ["diff", "--name-only", "--cached"],
@@ -280,12 +285,21 @@ export async function getGitChangedFiles(root: string, base?: string): Promise<s
           changed.add(trimmed);
         }
       }
-    } catch {
-      return [];
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Unable to determine changed files with git ${args.join(" ")}: ${message}`);
     }
   }
 
   return [...changed].sort();
+}
+
+function assertSafeGitBase(base: string): string {
+  const trimmed = base.trim();
+  if (!trimmed || trimmed.startsWith("-") || /\s/.test(trimmed)) {
+    throw new Error("Git base ref must be a non-empty ref or SHA, not an option or whitespace-separated value.");
+  }
+  return trimmed;
 }
 
 export function normalizePath(filePath: string): string {
@@ -295,6 +309,50 @@ export function normalizePath(filePath: string): string {
 export function matchesAnyPattern(filePath: string, patterns: string[]): boolean {
   const normalized = normalizePath(filePath);
   return patterns.some((pattern) => globToRegExp(pattern).test(normalized));
+}
+
+export function assertRepoRelativePath(relativePath: string, label = "path"): string {
+  const trimmed = relativePath.trim();
+  const normalized = normalizePath(trimmed);
+  if (!normalized || normalized === "." || path.isAbsolute(trimmed)) {
+    throw new Error(`${label} must be a repository-relative path.`);
+  }
+  if (normalized === ".." || normalized.startsWith("../") || normalized.includes("/../") || normalized.endsWith("/..")) {
+    throw new Error(`${label} must stay inside the repository.`);
+  }
+  return normalized;
+}
+
+export function resolveRepoPath(root: string, relativePath: string, label = "path"): string {
+  const normalized = assertRepoRelativePath(relativePath, label);
+  const resolvedRoot = path.resolve(root);
+  const resolvedPath = path.resolve(resolvedRoot, normalized);
+  const fromRoot = path.relative(resolvedRoot, resolvedPath);
+  if (fromRoot.startsWith("..") || path.isAbsolute(fromRoot)) {
+    throw new Error(`${label} must stay inside the repository.`);
+  }
+  return resolvedPath;
+}
+
+export async function resolveRepoWritePath(root: string, relativePath: string, label = "path"): Promise<string> {
+  const normalized = assertRepoRelativePath(relativePath, label);
+  const resolvedPath = resolveRepoPath(root, normalized, label);
+  const rootRealPath = await realpath(root);
+  await assertExistingSegmentsStayInsideRoot(root, rootRealPath, normalized, label);
+  return resolvedPath;
+}
+
+export function formatPackageScriptCommand(packageManager: RepoMap["packageManager"], script: string): string {
+  if (packageManager === "pnpm") {
+    return `pnpm ${script}`;
+  }
+  if (packageManager === "yarn") {
+    return `yarn ${script}`;
+  }
+  if (packageManager === "bun") {
+    return `bun run ${script}`;
+  }
+  return `npm run ${script}`;
 }
 
 export function severityRank(severity: RuleLevel): number {
@@ -348,6 +406,102 @@ function globToRegExp(pattern: string): RegExp {
   }
 
   return new RegExp(`^${expression}$`);
+}
+
+async function assertExistingSegmentsStayInsideRoot(
+  root: string,
+  rootRealPath: string,
+  relativePath: string,
+  label: string
+): Promise<void> {
+  const segments = relativePath.split("/");
+  let probe = path.resolve(root);
+  for (const segment of segments) {
+    probe = path.join(probe, segment);
+    const segmentStat = await lstat(probe).catch((error: unknown) => {
+      if (isNodeError(error) && error.code === "ENOENT") {
+        return undefined;
+      }
+      throw error;
+    });
+    if (!segmentStat) {
+      return;
+    }
+    if (!segmentStat.isSymbolicLink()) {
+      continue;
+    }
+    const target = await realpath(probe);
+    const fromRoot = path.relative(rootRealPath, target);
+    if (fromRoot.startsWith("..") || path.isAbsolute(fromRoot)) {
+      throw new Error(`${label} must not traverse a symlink outside the repository.`);
+    }
+  }
+}
+
+function validateConfigShape(config: Partial<CodeWardConfig>): void {
+  if (!isRecord(config)) {
+    throw new Error("CodeWard config must be an object.");
+  }
+  if (config.project !== undefined && !isRecord(config.project)) {
+    throw new Error("project must be an object.");
+  }
+  if (config.project?.stack !== undefined && !isStringArray(config.project.stack)) {
+    throw new Error("project.stack must be an array of strings.");
+  }
+  if (config.validation !== undefined && !isRecord(config.validation)) {
+    throw new Error("validation must be an object.");
+  }
+  if (config.validation?.commands !== undefined && !isStringRecord(config.validation.commands)) {
+    throw new Error("validation.commands must be a string map.");
+  }
+  if (config.risk !== undefined && !isRecord(config.risk)) {
+    throw new Error("risk must be an object.");
+  }
+  if (config.risk?.generated !== undefined && !isStringArray(config.risk.generated)) {
+    throw new Error("risk.generated must be an array of strings.");
+  }
+  if (config.risk?.high !== undefined && !isStringArray(config.risk.high)) {
+    throw new Error("risk.high must be an array of strings.");
+  }
+  if (config.rules !== undefined && !isRuleMap(config.rules)) {
+    throw new Error("rules must be a map of off, info, warn, or error.");
+  }
+  if (config.agents !== undefined && !isRecord(config.agents)) {
+    throw new Error("agents must be an object.");
+  }
+  if (config.agents?.output !== undefined && typeof config.agents.output !== "string") {
+    throw new Error("agents.output must be a string.");
+  }
+  if (config.agents?.style !== undefined && config.agents.style !== "balanced" && config.agents.style !== "strict") {
+    throw new Error("agents.style must be balanced or strict.");
+  }
+  if (config.agents?.targets !== undefined && !isInstructionTargets(config.agents.targets)) {
+    throw new Error("agents.targets must contain agents and/or copilot.");
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string");
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return isRecord(value) && Object.values(value).every((entry) => typeof entry === "string");
+}
+
+function isRuleMap(value: unknown): value is Record<string, RuleLevel> {
+  return isRecord(value) && Object.values(value).every(isRuleLevel);
+}
+
+function isRuleLevel(value: unknown): value is RuleLevel {
+  return value === "off" || value === "info" || value === "warn" || value === "error";
+}
+
+function isInstructionTargets(value: unknown): value is InstructionTarget[] {
+  return Array.isArray(value) && value.every((entry) => entry === "agents" || entry === "copilot");
 }
 
 function escapeRegExp(value: string): string {

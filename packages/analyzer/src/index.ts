@@ -26,6 +26,9 @@ const CONFIG_PATTERNS = [
   "vite.config.ts"
 ];
 
+const IGNORED_PACKAGE_DIRS = ["examples/", "node_modules/", "dist/"];
+const CI_PROVIDED_ENV_NAMES = new Set(["CI", "GITHUB_BASE_REF", "GITHUB_EVENT_NAME", "GITHUB_SHA"]);
+
 const TEXT_EXTENSIONS = new Set([
   ".cjs",
   ".cts",
@@ -48,10 +51,11 @@ export async function scanRepository(
 ): Promise<RepoMap> {
   const files = await listRepoFiles(root);
   const packageJson = await readJsonFile<PackageJson>(path.join(root, "package.json"));
+  const workspacePackageJsons = await readWorkspacePackageJsons(root, files);
   const envUsed = await detectEnvUsed(root, files);
   const envExample = await detectEnvExample(root);
   const paths = detectImportantPaths(files, config);
-  const frameworks = detectFrameworks(files, packageJson);
+  const frameworks = detectFrameworks(files, [packageJson, ...workspacePackageJsons].filter(isPackageJson));
   const languages = detectLanguages(files);
 
   return {
@@ -69,7 +73,7 @@ export async function scanRepository(
     },
     paths,
     packageFiles: files.filter((file) => isPackageFile(file)),
-    configFiles: files.filter((file) => CONFIG_PATTERNS.includes(file))
+    configFiles: files.filter((file) => CONFIG_PATTERNS.includes(path.basename(file)))
   };
 }
 
@@ -108,11 +112,15 @@ function detectPackageManager(files: string[], packageJson?: PackageJson): RepoM
   return "unknown";
 }
 
-function detectFrameworks(files: string[], packageJson?: PackageJson): string[] {
-  const dependencies = {
-    ...packageJson?.dependencies,
-    ...packageJson?.devDependencies
-  };
+function detectFrameworks(files: string[], packageJsons: PackageJson[]): string[] {
+  const dependencies = packageJsons.reduce<Record<string, string>>(
+    (allDependencies, packageJson) => ({
+      ...allDependencies,
+      ...packageJson.dependencies,
+      ...packageJson.devDependencies
+    }),
+    {}
+  );
   const frameworks = new Set<string>();
 
   if (dependencies.next || files.some((file) => file.startsWith("app/") || file.startsWith("src/app/"))) {
@@ -121,7 +129,7 @@ function detectFrameworks(files: string[], packageJson?: PackageJson): string[] 
   if (dependencies.react) {
     frameworks.add("react");
   }
-  if (dependencies.vite || files.some((file) => file.startsWith("vite.config."))) {
+  if (dependencies.vite || files.some((file) => path.basename(file).startsWith("vite.config."))) {
     frameworks.add("vite");
   }
   if (dependencies.prisma || dependencies["@prisma/client"] || files.includes("prisma/schema.prisma")) {
@@ -180,7 +188,7 @@ async function detectEnvUsed(root: string, files: string[]): Promise<string[]> {
     }
   }
 
-  return [...names].sort();
+  return [...names].filter((name) => !CI_PROVIDED_ENV_NAMES.has(name)).sort();
 }
 
 async function detectEnvExample(root: string): Promise<string[]> {
@@ -215,11 +223,34 @@ function detectImportantPaths(files: string[], config: CodeWardConfig): RepoMap[
 function isPackageFile(file: string): boolean {
   return (
     file === "package.json" ||
+    file.endsWith("/package.json") ||
     file === "pnpm-lock.yaml" ||
     file === "package-lock.json" ||
     file === "yarn.lock" ||
     file === "bun.lockb"
   );
+}
+
+async function readWorkspacePackageJsons(root: string, files: string[]): Promise<PackageJson[]> {
+  const packageJsons: PackageJson[] = [];
+  for (const file of files.filter(isWorkspacePackageJson)) {
+    const packageJson = await readJsonFile<PackageJson>(path.join(root, file));
+    if (packageJson) {
+      packageJsons.push(packageJson);
+    }
+  }
+  return packageJsons;
+}
+
+function isWorkspacePackageJson(file: string): boolean {
+  if (!file.endsWith("/package.json")) {
+    return false;
+  }
+  return !IGNORED_PACKAGE_DIRS.some((ignored) => file.startsWith(ignored));
+}
+
+function isPackageJson(packageJson: PackageJson | undefined): packageJson is PackageJson {
+  return Boolean(packageJson);
 }
 
 function isTextFile(file: string): boolean {
