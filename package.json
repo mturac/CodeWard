@@ -1,0 +1,20 @@
+{
+  "name": "codeward-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.8.0",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs",
+    "codeward": "node apps/cli/dist/index.js",
+    "format": "node scripts/check-format.mjs",
+    "lint": "node scripts/check-format.mjs",
+    "test": "node scripts/test.mjs",
+    "typecheck": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

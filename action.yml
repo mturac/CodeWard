@@ -1,0 +1,20 @@
+name: CodeWard
+description: Run deterministic CodeWard repository guardrails in GitHub Actions.
+author: CodeWard
+inputs:
+  root:
+    description: Repository root to scan.
+    required: false
+    default: "."
+  fail-on:
+    description: Minimum severity that fails the action. Use error, warn, or off.
+    required: false
+    default: "error"
+runs:
+  using: composite
+  steps:
+    - name: Run CodeWard
+      shell: bash
+      run: |
+        corepack enable
+        pnpm dlx codeward ci --root "${{ inputs.root }}" --fail-on "${{ inputs.fail-on }}"

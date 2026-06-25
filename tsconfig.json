@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/analyzer" },
+    { "path": "./packages/agents-md" },
+    { "path": "./packages/rules" },
+    { "path": "./packages/github" },
+    { "path": "./apps/cli" }
+  ]
+}

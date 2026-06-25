@@ -1,0 +1,37 @@
+project:
+  name: "CodeWard"
+  stack:
+    - typescript
+    - node
+
+validation:
+  commands:
+    lint: "pnpm lint"
+    typecheck: "pnpm typecheck"
+    test: "pnpm test"
+    build: "pnpm build"
+
+risk:
+  high:
+    - "apps/cli/src/**"
+    - "packages/rules/src/**"
+    - "packages/analyzer/src/**"
+    - ".github/workflows/**"
+    - "package.json"
+    - "pnpm-lock.yaml"
+
+rules:
+  dependencyChange: warn
+  envExampleSync: error
+  forbiddenAny: warn
+  missingNearbyTest: warn
+  requireAgentsMd: error
+  riskyFileChange: warn
+  silentCatch: error
+
+agents:
+  output: "AGENTS.md"
+  style: "strict"
+  targets:
+    - agents
+    - copilot

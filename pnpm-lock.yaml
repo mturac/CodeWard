@@ -1,0 +1,103 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.0
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  apps/cli:
+    dependencies:
+      '@codeward/agents-md':
+        specifier: workspace:*
+        version: link:../../packages/agents-md
+      '@codeward/analyzer':
+        specifier: workspace:*
+        version: link:../../packages/analyzer
+      '@codeward/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@codeward/github':
+        specifier: workspace:*
+        version: link:../../packages/github
+      '@codeward/rules':
+        specifier: workspace:*
+        version: link:../../packages/rules
+      commander:
+        specifier: ^12.1.0
+        version: 12.1.0
+
+  packages/agents-md:
+    dependencies:
+      '@codeward/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/analyzer:
+    dependencies:
+      '@codeward/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/core:
+    dependencies:
+      yaml:
+        specifier: ^2.6.1
+        version: 2.9.0
+
+  packages/github:
+    dependencies:
+      '@codeward/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/rules:
+    dependencies:
+      '@codeward/core':
+        specifier: workspace:*
+        version: link:../core
+
+packages:
+
+  '@types/node@22.20.0':
+    resolution: {integrity: sha512-QWlFW2wf3nTjC13/DqRnBpR4ZO36VJH/JVBkA/vcnmbTBNQIlnObqyqZE1tUR7+Ni23Lda8R1BxMfbXRpCUx5g==}
+
+  commander@12.1.0:
+    resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
+    engines: {node: '>=18'}
+
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+
+  yaml@2.9.0:
+    resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
+snapshots:
+
+  '@types/node@22.20.0':
+    dependencies:
+      undici-types: 6.21.0
+
+  commander@12.1.0: {}
+
+  typescript@5.9.3: {}
+
+  undici-types@6.21.0: {}
+
+  yaml@2.9.0: {}

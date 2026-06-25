@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">CodeWard repo guardrail pipeline</title>
+  <desc id="desc">A dark interface-style hero showing repository analysis, instruction files, deterministic checks, and pull request risk reports.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101820"/>
+      <stop offset="0.45" stop-color="#17313a"/>
+      <stop offset="1" stop-color="#0d1b2a"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#42d392"/>
+      <stop offset="1" stop-color="#7dd3fc"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#020617" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <path d="M0 534C210 471 364 582 568 510C779 436 885 380 1280 452V640H0Z" fill="#0b1220" opacity="0.55"/>
+  <g opacity="0.18" stroke="#9ca3af" stroke-width="1">
+    <path d="M120 120H1160"/>
+    <path d="M120 220H1160"/>
+    <path d="M120 320H1160"/>
+    <path d="M120 420H1160"/>
+    <path d="M220 80V520"/>
+    <path d="M420 80V520"/>
+    <path d="M640 80V520"/>
+    <path d="M860 80V520"/>
+    <path d="M1060 80V520"/>
+  </g>
+  <g filter="url(#shadow)">
+    <rect x="88" y="86" width="1104" height="468" rx="22" fill="#f8fafc"/>
+    <rect x="88" y="86" width="1104" height="54" rx="22" fill="#e5edf5"/>
+    <circle cx="126" cy="113" r="8" fill="#ef4444"/>
+    <circle cx="154" cy="113" r="8" fill="#f59e0b"/>
+    <circle cx="182" cy="113" r="8" fill="#22c55e"/>
+  </g>
+  <text x="128" y="198" fill="#0f172a" font-family="Inter, ui-sans-serif, system-ui" font-size="62" font-weight="800">CodeWard</text>
+  <text x="130" y="242" fill="#334155" font-family="Inter, ui-sans-serif, system-ui" font-size="28" font-weight="600">Open-source repo guardrails for AI-assisted engineering</text>
+  <g font-family="Inter, ui-sans-serif, system-ui" font-size="20" font-weight="700">
+    <rect x="132" y="304" width="220" height="104" rx="14" fill="#ecfeff" stroke="#0891b2"/>
+    <text x="162" y="346" fill="#155e75">scan repo</text>
+    <text x="162" y="378" fill="#0f766e" font-size="16" font-weight="600">frameworks, env, risk</text>
+    <rect x="400" y="304" width="220" height="104" rx="14" fill="#f0fdf4" stroke="#16a34a"/>
+    <text x="430" y="346" fill="#166534">write rails</text>
+    <text x="430" y="378" fill="#15803d" font-size="16" font-weight="600">AGENTS + Copilot</text>
+    <rect x="668" y="304" width="220" height="104" rx="14" fill="#fff7ed" stroke="#ea580c"/>
+    <text x="698" y="346" fill="#9a3412">check changes</text>
+    <text x="698" y="378" fill="#c2410c" font-size="16" font-weight="600">deterministic rules</text>
+    <rect x="936" y="304" width="220" height="104" rx="14" fill="#eef2ff" stroke="#4f46e5"/>
+    <text x="966" y="346" fill="#3730a3">PR risk report</text>
+    <text x="966" y="378" fill="#4338ca" font-size="16" font-weight="600">CI annotations</text>
+  </g>
+  <g stroke="url(#accent)" stroke-width="6" stroke-linecap="round">
+    <path d="M356 356H394"/>
+    <path d="M624 356H662"/>
+    <path d="M892 356H930"/>
+  </g>
+  <g transform="translate(132 456)">
+    <rect width="454" height="54" rx="12" fill="#0f172a"/>
+    <text x="24" y="35" fill="#d1fae5" font-family="SFMono-Regular, ui-monospace, monospace" font-size="19">pnpm dlx codeward init</text>
+  </g>
+  <g transform="translate(620 456)">
+    <rect width="536" height="54" rx="12" fill="#0f172a"/>
+    <text x="24" y="35" fill="#bfdbfe" font-family="SFMono-Regular, ui-monospace, monospace" font-size="19">codeward check --fail-on error</text>
+  </g>
+</svg>

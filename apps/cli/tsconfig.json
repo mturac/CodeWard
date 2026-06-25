@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/analyzer" },
+    { "path": "../../packages/agents-md" },
+    { "path": "../../packages/rules" },
+    { "path": "../../packages/github" }
+  ]
+}
